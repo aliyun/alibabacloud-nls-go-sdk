@@ -285,7 +285,7 @@ error：异常对象，为nil则无异常
 | Format                         | string | 音频格式，默认使用pcm |
 | SampleRate                     | int    | 采样率，默认16000     |
 | EnableIntermediateResult       | bool   | 是否打开中间结果返回  |
-| EnablePunctuationPredition     | bool   | 是否打开标点预测      |
+| EnablePunctuationPrediction    | bool   | 是否打开标点预测      |
 | EnableInverseTextNormalization | bool   | 是否打开ITN           |
 
 

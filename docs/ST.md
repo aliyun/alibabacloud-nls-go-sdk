@@ -287,7 +287,7 @@ error：异常对象，为nil则无异常
 | Format                         | string | 音频格式，默认使用pcm                                        |
 | SampleRate                     | int    | 采样率，默认16000                                            |
 | EnableIntermediateResult       | bool   | 是否打开中间结果返回                                         |
-| EnablePunctuationPredition     | bool   | 是否打开标点预测                                             |
+| EnablePunctuationPrediction    | bool   | 是否打开标点预测                                             |
 | EnableInverseTextNormalization | bool   | 是否打开ITN                                                  |
 | MaxSentenceSilence             | int    | 语音断句检测阈值，静音时长超过该阈值会被认为断句，合法参数范围200～2000(ms)，默认值800m |
 | enable_words                   | bool   | 是否开启返回词信息，可选，默认false不开启                    |
