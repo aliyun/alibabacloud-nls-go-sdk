@@ -53,7 +53,7 @@ const (
   AUDIO_FORMAT_KEY        = "format"
 	SAMPLE_RATE_KEY         = "sample_rate"
 	ENABLE_INTERMEDIATE_KEY = "enable_intermediate_result"
-	ENABLE_PP_KEY           = "enable_punctuation_predition"
+	ENABLE_PP_KEY           = "enable_punctuation_prediction"
 	ENABLE_ITN_KEY          = "enable_inverse_text_normalization"
 )
 
