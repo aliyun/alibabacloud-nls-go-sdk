@@ -46,7 +46,7 @@ type SpeechTranscriptionStartParam struct {
 	Format                         string `json:"format,omitempty"`
 	SampleRate                     int    `json:"sample_rate,omitempty"`
 	EnableIntermediateResult       bool   `json:"enable_intermediate_result"`
-	EnablePunctuationPredition     bool   `json:"enable_punctuation_predition"`
+	EnablePunctuationPrediction    bool   `json:"enable_punctuation_prediction"`
 	EnableInverseTextNormalization bool   `json:"enable_inverse_text_normalization"`
 	MaxSentenceSilence             int    `json:"max_sentence_silence,omitempty"`
 	EnableWords                    bool   `json:"enable_words"`
@@ -57,7 +57,7 @@ func DefaultSpeechTranscriptionParam() SpeechTranscriptionStartParam {
 		Format:                         "pcm",
 		SampleRate:                     16000,
 		EnableIntermediateResult:       true,
-		EnablePunctuationPredition:     true,
+		EnablePunctuationPrediction:    true,
 		EnableInverseTextNormalization: true,
 		MaxSentenceSilence:             800,
 		EnableWords:                    false,
