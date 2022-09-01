@@ -457,9 +457,7 @@ const (
 
 func testMultiInstance(num int) {
         param := nls.DefaultSpeechSynthesisParam()
-		//config := nls.NewConnectionConfigWithToken(PRE_URL_WSS,
-        //        APPKEY, TOKEN)
-    	config := nls.NewConnectionConfigWithAKInfoDefault(nls.DEFAULT_URL, APPKEY, AKID, AKKEY)
+    	  config,_ := nls.NewConnectionConfigWithAKInfoDefault(nls.DEFAULT_URL, APPKEY, AKID, AKKEY)
         var wg sync.WaitGroup
         for i := 0; i < num; i++ {
                 wg.Add(1)
@@ -475,7 +473,7 @@ func testMultiInstance(num int) {
                         logger.Printf("Test Normal Case for SpeechRecognition:%s", strId)
                         ttsUserParam.F = fout
                         ttsUserParam.Logger = logger
-      tts, err := nls.NewSpeechSynthesis(config, logger,
+                        tts, err := nls.NewSpeechSynthesis(config, logger, false,
                                 onTaskFailed, onSynthesisResult, nil,
                                 onCompleted, onClose, ttsUserParam)
                         if err != nil {
