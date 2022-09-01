@@ -17,7 +17,7 @@ import (
 )
 
 const (
-  AKID  = "Your AKID"
+	AKID  = "Your AKID"
 	AKKEY = "Your AKKEY"
 	//online key
 	APPKEY = "Your APPKEY"
@@ -25,8 +25,8 @@ const (
 )
 
 type TtsUserParam struct {
-	F           io.Writer
-	Logger      *nls.NlsLogger
+	F      io.Writer
+	Logger *nls.NlsLogger
 }
 
 func onTaskFailed(text string, param interface{}) {
@@ -57,7 +57,6 @@ func onCompleted(text string, param interface{}) {
 
 	p.Logger.Println("onCompleted:", text)
 }
-
 
 func onClose(param interface{}) {
 	p, ok := param.(*TtsUserParam)
@@ -115,13 +114,15 @@ func testMultiInstance(num int) {
 			logger.Printf("Test Normal Case for SpeechRecognition:%s", strId)
 			ttsUserParam.F = fout
 			ttsUserParam.Logger = logger
-      tts, err := nls.NewSpeechSynthesis(config, logger,
+			tts, err := nls.NewSpeechSynthesis(config, logger,
 				onTaskFailed, onSynthesisResult, nil,
 				onCompleted, onClose, ttsUserParam)
 			if err != nil {
 				logger.Fatalln(err)
 				return
 			}
+			//if you want using reatime long text tts
+			tts.SetRealtimeLongTextSynthesis(true)
 
 			for {
 				lk.Lock()

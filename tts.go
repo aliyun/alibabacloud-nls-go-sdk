@@ -27,8 +27,8 @@ import (
 
 const (
 	//namespace field
-	TTS_NAMESPACE = "SpeechSynthesizer"
-
+	TTS_NAMESPACE      = "SpeechSynthesizer"
+	TTS_LONG_NAMESPACE = "SpeechLongSynthesizer"
 	//name field
 	TTS_START_NAME     = "StartSynthesis"
 	TTS_COMPLETED_NAME = "SynthesisCompleted"
@@ -72,6 +72,8 @@ type SpeechSynthesis struct {
 
 	StartParam map[string]interface{}
 	UserParam  interface{}
+
+	usingLong bool
 }
 
 func checkTtsNlsProto(proto *nlsProto) *SpeechSynthesis {
@@ -112,7 +114,11 @@ func onTtsConnectedHandler(isErr bool, text []byte, proto *nlsProto) {
 	req.Header.Appkey = tts.nls.connConfig.Appkey
 	req.Header.MessageId = getUuid()
 	req.Header.Name = TTS_START_NAME
-	req.Header.Namespace = TTS_NAMESPACE
+  if tts.usingLong {
+    req.Header.Namespace = TTS_LONG_NAMESPACE
+  } else {
+    req.Header.Namespace = TTS_NAMESPACE
+  }
 	req.Header.TaskId = tts.taskId
 	req.Payload = tts.StartParam
 
@@ -201,7 +207,12 @@ func NewSpeechSynthesis(config *ConnectionConfig,
 	tts.onMetaInfo = metainfo
 	tts.onCompleted = completed
 	tts.onClose = closed
+	tts.usingLong = false
 	return tts, nil
+}
+
+func (tts *SpeechSynthesis) SetRealtimeLongTextSynthesis(enable bool) {
+	tts.usingLong = enable
 }
 
 func (tts *SpeechSynthesis) Start(text string,
@@ -233,8 +244,8 @@ func (tts *SpeechSynthesis) Start(text string,
 		return nil, err
 	}
 
-  tts.lk.Lock()
-  defer tts.lk.Unlock()
+	tts.lk.Lock()
+	defer tts.lk.Unlock()
 	tts.completeChan = make(chan bool, 1)
 	return tts.completeChan, nil
 }
