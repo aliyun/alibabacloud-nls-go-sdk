@@ -312,7 +312,6 @@ SpeechSynthesisStartParam：语音合成参数
 | --------------- | ------------------------- | ----------------------------------------------------- |
 | config          | *ConnectionConfig         | 见上文建立连接相关内容                                |
 | logger          | *NlsLogger                | 见SDK日志相关内容                                     |
-| realtime        | bool                      | 是否使用实时长文本，默认为短文本                      |
 | taskfailed      | func(string, interface{}) | 识别过程中的错误处理回调，interface{}为用户自定义参数 |
 | synthesisresult | func([]byte, interface{}) | 语音合成数据回调                                      |
 | metainfo        | func(string, interface{}) | 字幕数据回调，需要参数中EnableSubtitle为true          |
@@ -473,7 +472,7 @@ func testMultiInstance(num int) {
                         logger.Printf("Test Normal Case for SpeechRecognition:%s", strId)
                         ttsUserParam.F = fout
                         ttsUserParam.Logger = logger
-                        tts, err := nls.NewSpeechSynthesis(config, logger, false,
+                        tts, err := nls.NewSpeechSynthesis(config, logger,
                                 onTaskFailed, onSynthesisResult, nil,
                                 onCompleted, onClose, ttsUserParam)
                         if err != nil {

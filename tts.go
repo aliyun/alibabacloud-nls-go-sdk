@@ -186,13 +186,13 @@ func newSpeechSynthesisProto(isRealtime bool) *commonProto {
 
 func NewSpeechSynthesis(config *ConnectionConfig,
 	logger *NlsLogger,
-	realtimeLongText bool,
 	taskfailed func(string, interface{}),
 	synthesisresult func([]byte, interface{}),
 	metainfo func(string, interface{}),
 	completed func(string, interface{}),
 	closed func(interface{}),
 	param interface{}) (*SpeechSynthesis, error) {
+  realtimeLongText := false
 	tts := new(SpeechSynthesis)
 	proto := newSpeechSynthesisProto(realtimeLongText)
 	if logger == nil {
