@@ -312,6 +312,7 @@ SpeechSynthesisStartParam：语音合成参数
 | --------------- | ------------------------- | ----------------------------------------------------- |
 | config          | *ConnectionConfig         | 见上文建立连接相关内容                                |
 | logger          | *NlsLogger                | 见SDK日志相关内容                                     |
+| realtime        | bool                      | 是否使用实时长文本，默认为短文本                      |
 | taskfailed      | func(string, interface{}) | 识别过程中的错误处理回调，interface{}为用户自定义参数 |
 | synthesisresult | func([]byte, interface{}) | 语音合成数据回调                                      |
 | metainfo        | func(string, interface{}) | 字幕数据回调，需要参数中EnableSubtitle为true          |
