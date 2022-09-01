@@ -114,12 +114,11 @@ func onTtsConnectedHandler(isErr bool, text []byte, proto *nlsProto) {
 	req.Header.Appkey = tts.nls.connConfig.Appkey
 	req.Header.MessageId = getUuid()
 	req.Header.Name = TTS_START_NAME
-  if tts.usingLong {
-    req.Header.Namespace = TTS_LONG_NAMESPACE
-    tts.nls.proto.namespace = TTS_LONG_NAMESPACE
-  } else {
-    req.Header.Namespace = TTS_NAMESPACE
-  }
+	if tts.usingLong {
+		req.Header.Namespace = TTS_LONG_NAMESPACE
+	} else {
+		req.Header.Namespace = TTS_NAMESPACE
+	}
 	req.Header.TaskId = tts.taskId
 	req.Payload = tts.StartParam
 
@@ -178,12 +177,16 @@ var ttsProto = commonProto{
 	},
 }
 
-func newSpeechSynthesisProto() *commonProto {
+func newSpeechSynthesisProto(isRealtime bool) *commonProto {
+	if isRealtime {
+		ttsProto.namespace = TTS_LONG_NAMESPACE
+	}
 	return &ttsProto
 }
 
 func NewSpeechSynthesis(config *ConnectionConfig,
 	logger *NlsLogger,
+	realtimeLongText bool,
 	taskfailed func(string, interface{}),
 	synthesisresult func([]byte, interface{}),
 	metainfo func(string, interface{}),
@@ -191,7 +194,7 @@ func NewSpeechSynthesis(config *ConnectionConfig,
 	closed func(interface{}),
 	param interface{}) (*SpeechSynthesis, error) {
 	tts := new(SpeechSynthesis)
-	proto := newSpeechSynthesisProto()
+	proto := newSpeechSynthesisProto(realtimeLongText)
 	if logger == nil {
 		logger = DefaultNlsLog()
 	}
@@ -208,12 +211,8 @@ func NewSpeechSynthesis(config *ConnectionConfig,
 	tts.onMetaInfo = metainfo
 	tts.onCompleted = completed
 	tts.onClose = closed
-	tts.usingLong = false
+	tts.usingLong = realtimeLongText
 	return tts, nil
-}
-
-func (tts *SpeechSynthesis) SetRealtimeLongTextSynthesis(enable bool) {
-	tts.usingLong = enable
 }
 
 func (tts *SpeechSynthesis) Start(text string,

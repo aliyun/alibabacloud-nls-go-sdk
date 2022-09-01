@@ -114,15 +114,14 @@ func testMultiInstance(num int) {
 			logger.Printf("Test Normal Case for SpeechRecognition:%s", strId)
 			ttsUserParam.F = fout
 			ttsUserParam.Logger = logger
-			tts, err := nls.NewSpeechSynthesis(config, logger,
+			//third param control using realtime long text tts
+      tts, err := nls.NewSpeechSynthesis(config, logger, false,
 				onTaskFailed, onSynthesisResult, nil,
 				onCompleted, onClose, ttsUserParam)
 			if err != nil {
 				logger.Fatalln(err)
 				return
 			}
-			//if you want using reatime long text tts
-			tts.SetRealtimeLongTextSynthesis(true)
 
 			for {
 				lk.Lock()
