@@ -116,6 +116,7 @@ func onTtsConnectedHandler(isErr bool, text []byte, proto *nlsProto) {
 	req.Header.Name = TTS_START_NAME
   if tts.usingLong {
     req.Header.Namespace = TTS_LONG_NAMESPACE
+    tts.nls.proto.namespace = TTS_LONG_NAMESPACE
   } else {
     req.Header.Namespace = TTS_NAMESPACE
   }
