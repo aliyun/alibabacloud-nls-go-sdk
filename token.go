@@ -16,13 +16,12 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-
-
 package nls
 
 import (
 	"encoding/json"
-  "github.com/aliyun/alibaba-cloud-sdk-go/sdk"
+
+	"github.com/aliyun/alibaba-cloud-sdk-go/sdk"
 	"github.com/aliyun/alibaba-cloud-sdk-go/sdk/requests"
 )
 
@@ -50,5 +49,3 @@ func GetToken(dist string, domain string, akid string, akkey string, version str
 
 	return message, nil
 }
-
-

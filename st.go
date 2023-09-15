@@ -16,7 +16,6 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-
 package nls
 
 import (
@@ -107,9 +106,9 @@ func onStTaskFailedHandler(isErr bool, text []byte, proto *nlsProto) {
 	}
 
 	st.lk.Lock()
-  defer st.lk.Unlock()
+	defer st.lk.Unlock()
 
-  if st.startCh != nil {
+	if st.startCh != nil {
 		st.startCh <- false
 		close(st.startCh)
 		st.startCh = nil
@@ -154,8 +153,8 @@ func onStStartedHandler(isErr bool, text []byte, proto *nlsProto) {
 		st.onStarted(string(text), st.UserParam)
 	}
 	st.lk.Lock()
-  defer st.lk.Unlock()
-  if st.startCh != nil {
+	defer st.lk.Unlock()
+	if st.startCh != nil {
 		st.startCh <- true
 		close(st.startCh)
 		st.startCh = nil
@@ -190,28 +189,27 @@ func onStCompletedHandler(isErr bool, text []byte, proto *nlsProto) {
 	}
 
 	st.lk.Lock()
-  defer st.lk.Unlock()
-  if st.stopCh != nil {
+	defer st.lk.Unlock()
+	if st.stopCh != nil {
 		st.stopCh <- true
 		st.stopCh = nil
 	}
 }
 
-var stProto = commonProto{
-	namespace: ST_NAMESPACE,
-	handlers: map[string]func(bool, []byte, *nlsProto){
-		CLOSE_HANDLER:          onStCloseHandler,
-		CONNECTED_HANDLER:      onStConnectedHandler,
-		ST_STARTED_NAME:        onStStartedHandler,
-		ST_SENTENCE_BEGIN_NAME: onStSentenceBeginHandler,
-		ST_SENTENCE_END_NAME:   onStSentenceEndHandler,
-		ST_RESULT_CHG_NAME:     onStResultChangedHandler,
-		ST_COMPLETED_NAME:      onStCompletedHandler,
-		TASK_FAILED_NAME:       onStTaskFailedHandler,
-	},
-}
-
 func newSpeechTranscriptionProto() *commonProto {
+	var stProto = commonProto{
+		namespace: ST_NAMESPACE,
+		handlers: map[string]func(bool, []byte, *nlsProto){
+			CLOSE_HANDLER:          onStCloseHandler,
+			CONNECTED_HANDLER:      onStConnectedHandler,
+			ST_STARTED_NAME:        onStStartedHandler,
+			ST_SENTENCE_BEGIN_NAME: onStSentenceBeginHandler,
+			ST_SENTENCE_END_NAME:   onStSentenceEndHandler,
+			ST_RESULT_CHG_NAME:     onStResultChangedHandler,
+			ST_COMPLETED_NAME:      onStCompletedHandler,
+			TASK_FAILED_NAME:       onStTaskFailedHandler,
+		},
+	}
 	return &stProto
 }
 
@@ -274,8 +272,8 @@ func (st *SpeechTranscription) Start(param SpeechTranscriptionStartParam, extra 
 		return nil, err
 	}
 
-  st.lk.Lock()
-  defer st.lk.Unlock()
+	st.lk.Lock()
+	defer st.lk.Unlock()
 
 	st.startCh = make(chan bool, 1)
 	return st.startCh, nil
@@ -309,7 +307,6 @@ func (st *SpeechTranscription) Stop() (chan bool, error) {
 		return nil, errors.New("empty nls: using NewSpeechTranscription to create a valid instance")
 	}
 
-
 	req := CommonRequest{}
 	req.Context = DefaultContext
 	req.Header.Appkey = st.nls.connConfig.Appkey
@@ -324,8 +321,8 @@ func (st *SpeechTranscription) Stop() (chan bool, error) {
 		return nil, err
 	}
 
-  st.lk.Lock()
-  defer st.lk.Unlock()
+	st.lk.Lock()
+	defer st.lk.Unlock()
 	st.stopCh = make(chan bool, 1)
 	return st.stopCh, nil
 }
@@ -335,9 +332,9 @@ func (st *SpeechTranscription) Shutdown() {
 		return
 	}
 
-  st.nls.shutdown()
-  st.lk.Lock()
-  defer st.lk.Unlock()
+	st.nls.shutdown()
+	st.lk.Lock()
+	defer st.lk.Unlock()
 	if st.startCh != nil {
 		st.startCh <- false
 		close(st.startCh)

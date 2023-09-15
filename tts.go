@@ -165,19 +165,18 @@ func onTtsCompletedHandler(isErr bool, text []byte, proto *nlsProto) {
 	}
 }
 
-var ttsProto = commonProto{
-	namespace: TTS_NAMESPACE,
-	handlers: map[string]func(bool, []byte, *nlsProto){
-		CLOSE_HANDLER:      onTtsCloseHandler,
-		CONNECTED_HANDLER:  onTtsConnectedHandler,
-		RAW_HANDLER:        onTtsRawResultHandler,
-		TTS_COMPLETED_NAME: onTtsCompletedHandler,
-		TASK_FAILED_NAME:   onTtsTaskFailedHandler,
-		TTS_METAINFO_NAME:  onTtsMetaInfoHandler,
-	},
-}
-
 func newSpeechSynthesisProto(isRealtime bool) *commonProto {
+	var ttsProto = commonProto{
+		namespace: TTS_NAMESPACE,
+		handlers: map[string]func(bool, []byte, *nlsProto){
+			CLOSE_HANDLER:      onTtsCloseHandler,
+			CONNECTED_HANDLER:  onTtsConnectedHandler,
+			RAW_HANDLER:        onTtsRawResultHandler,
+			TTS_COMPLETED_NAME: onTtsCompletedHandler,
+			TASK_FAILED_NAME:   onTtsTaskFailedHandler,
+			TTS_METAINFO_NAME:  onTtsMetaInfoHandler,
+		},
+	}
 	if isRealtime {
 		ttsProto.namespace = TTS_LONG_NAMESPACE
 	}

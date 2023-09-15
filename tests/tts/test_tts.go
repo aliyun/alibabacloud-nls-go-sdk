@@ -13,7 +13,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/aliyun/alibabacloud-nls-go-sdk"
+	nls "github.com/ikmak/alibabacloud-nls-go-sdk"
 )
 
 const (
@@ -115,7 +115,7 @@ func testMultiInstance(num int) {
 			ttsUserParam.F = fout
 			ttsUserParam.Logger = logger
 			//third param control using realtime long text tts
-      tts, err := nls.NewSpeechSynthesis(config, logger, false,
+			tts, err := nls.NewSpeechSynthesis(config, logger, false,
 				onTaskFailed, onSynthesisResult, nil,
 				onCompleted, onClose, ttsUserParam)
 			if err != nil {

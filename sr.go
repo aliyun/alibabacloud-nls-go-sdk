@@ -16,8 +16,6 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-
-
 package nls
 
 import (
@@ -175,19 +173,18 @@ func onSrCompletedHandler(isErr bool, text []byte, proto *nlsProto) {
 	}
 }
 
-var srProto = commonProto{
-	namespace: SR_NAMESPACE,
-	handlers: map[string]func(bool, []byte, *nlsProto){
-		CLOSE_HANDLER:      onSrCloseHandler,
-		CONNECTED_HANDLER:  onSrConnectedHandler,
-		SR_STARTED_NAME:    onSrStartedHandler,
-		SR_RESULT_CHG_NAME: onSrResultChangedHandler,
-		SR_COMPLETED_NAME:  onSrCompletedHandler,
-		TASK_FAILED_NAME:   onSrTaskFailedHandler,
-	},
-}
-
 func newSpeechRecognitionProto() *commonProto {
+	var srProto = commonProto{
+		namespace: SR_NAMESPACE,
+		handlers: map[string]func(bool, []byte, *nlsProto){
+			CLOSE_HANDLER:      onSrCloseHandler,
+			CONNECTED_HANDLER:  onSrConnectedHandler,
+			SR_STARTED_NAME:    onSrStartedHandler,
+			SR_RESULT_CHG_NAME: onSrResultChangedHandler,
+			SR_COMPLETED_NAME:  onSrCompletedHandler,
+			TASK_FAILED_NAME:   onSrTaskFailedHandler,
+		},
+	}
 	return &srProto
 }
 
@@ -246,8 +243,8 @@ func (sr *SpeechRecognition) Start(param SpeechRecognitionStartParam, extra map[
 		return nil, err
 	}
 
-  sr.lk.Lock()
-  defer sr.lk.Unlock()
+	sr.lk.Lock()
+	defer sr.lk.Unlock()
 	sr.startCh = make(chan bool, 1)
 	return sr.startCh, nil
 }
@@ -256,7 +253,6 @@ func (sr *SpeechRecognition) Stop() (chan bool, error) {
 	if sr.nls == nil {
 		return nil, errors.New("empty nls: using NewSpeechRecognition to create a valid instance")
 	}
-
 
 	req := CommonRequest{}
 	req.Context = DefaultContext
@@ -272,8 +268,8 @@ func (sr *SpeechRecognition) Stop() (chan bool, error) {
 		return nil, err
 	}
 
-  sr.lk.Lock()
-  defer sr.lk.Unlock()
+	sr.lk.Lock()
+	defer sr.lk.Unlock()
 	sr.stopCh = make(chan bool, 1)
 	return sr.stopCh, nil
 }
