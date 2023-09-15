@@ -22,8 +22,9 @@ import (
 	"errors"
 	"time"
 
-	"github.com/gorilla/websocket"
 	"net/http"
+
+	"github.com/gorilla/websocket"
 )
 
 type wsConnection struct {
@@ -60,7 +61,7 @@ func newWsConnection(url string, token string, handshakeTimeout time.Duration,
 				if retry >= 5 {
 					return nil, err
 				}
-        time.Sleep(10 * time.Millisecond)
+				time.Sleep(10 * time.Millisecond)
 			} else {
 				connection.logger.Debugf("connection(%p) connect failed: %s", connection, err)
 				return nil, err

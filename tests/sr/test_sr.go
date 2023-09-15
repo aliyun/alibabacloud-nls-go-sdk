@@ -12,7 +12,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/ikmak/alibabacloud-nls-go-sdk"
+	nls "github.com/ikmak/alibabacloud-nls-go-sdk"
 )
 
 const (

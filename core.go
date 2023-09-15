@@ -16,7 +16,6 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-
 package nls
 
 import (
@@ -144,8 +143,8 @@ func (nls *nlsProto) Connect() error {
 					handler(false, data, nls)
 				}
 			} else {
-        nls.logger.Debugf("recv raw frame:%s", string(data))
-        resp := CommonResponse{}
+				nls.logger.Debugf("recv raw frame:%s", string(data))
+				resp := CommonResponse{}
 				err := json.Unmarshal(data, &resp)
 				if err != nil {
 					nls.logger.Println("OCCUR UNKNOWN PROTO:", err)
