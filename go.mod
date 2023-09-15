@@ -1,4 +1,4 @@
-module github.com/aliyun/alibabacloud-nls-go-sdk
+module github.com/ikmak/alibabacloud-nls-go-sdk
 
 go 1.16
 
