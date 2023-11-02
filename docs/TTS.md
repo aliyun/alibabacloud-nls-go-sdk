@@ -19,14 +19,14 @@
 
 通过以下命令获取SDK
 
-> go get -u github.com/aliyun/alibabacloud-nls-go-sdk@v2.0.0
+> go get -u github.com/aliyun/alibabacloud-nls-go-sdk@v0.1.0
 
 
 2. 导入SDK
 
 在代码中通过将以下字段加入import来导入SDK：
 
-> import ("github.com/aliyun/alibabacloud-dash-go-sdk")
+> import ("github.com/aliyun/alibabacloud-nls-go-sdk")
 
 
 
