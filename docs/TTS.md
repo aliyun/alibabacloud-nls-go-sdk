@@ -313,7 +313,7 @@ import (
 	"sync"
 	"time"
 
-	dash "github.com/aliyun/alibabacloud-dash-go-sdk"
+	dash "github.com/aliyun/alibabacloud-nls-go-sdk"
 )
 
 type TtsUserParam struct {
