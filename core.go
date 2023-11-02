@@ -16,13 +16,13 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-
-package nls
+package dash
 
 import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"os"
 	"time"
 )
 
@@ -33,77 +33,51 @@ const (
 )
 
 type ConnectionConfig struct {
-	Url     string `json:"url"`
-	Token   string `json:"token"`
-	Akid    string `json:"akid"`
-	Akkey   string `json:"akkey"`
-	Appkey  string `json:"appkey"`
-	Rbuffer int    `json:"rbuffer"`
-	Wbuffer int    `json:"wbuffer"`
+	Url     string
+	Apikey  string
+	Rbuffer int
+	Wbuffer int
 }
 
-func NewConnectionConfigWithAKInfoDefault(url string, appkey string,
-	akid string, akkey string) (*ConnectionConfig, error) {
-	tokenMsg, err := GetToken(DEFAULT_DISTRIBUTE, DEFAULT_DOMAIN, akid, akkey, DEFAULT_VERSION)
-	if err != nil {
-		return nil, err
-	}
+func NewConnectionConfigDefault() (*ConnectionConfig, error) {
+	var apikey string
+	apikey = os.Getenv(APIKEY_ENV_KEY_NAME)
 
-	if tokenMsg.TokenResult.Id == "" {
-		str := fmt.Sprintf("obtain empty token err:%s", tokenMsg.ErrMsg)
+	if apikey == "" {
+		str := fmt.Sprintf("obtain apikey from env %s failed.", APIKEY_ENV_KEY_NAME)
 		return nil, errors.New(str)
 	}
 
-	return NewConnectionConfigWithToken(url, appkey, tokenMsg.TokenResult.Id), nil
+	return NewConnectionConfigWithUrlApiKey(DEFAULT_URL, apikey, DEFAULT_WS_RBUFFER_SIZE, DEFAULT_WS_WBUFFER_SIZE), nil
 }
 
-func NewConnectionConfigWithToken(url string, appkey string, token string) *ConnectionConfig {
+func NewConnectionConfigWithUrlApiKey(url string, apikey string, rbuffer int, wbuffer int) *ConnectionConfig {
 	config := new(ConnectionConfig)
 	config.Url = url
-	config.Appkey = appkey
-	config.Token = token
-	config.Rbuffer = 1024
-	config.Wbuffer = 4096
+	config.Apikey = apikey
+	config.Rbuffer = rbuffer
+	config.Wbuffer = wbuffer
 	return config
 }
 
-func NewConnectionConfigFromJson(jsonStr string) (*ConnectionConfig, error) {
-	config := ConnectionConfig{}
-	err := json.Unmarshal([]byte(jsonStr), &config)
-	if err != nil {
-		return nil, err
-	}
-
-	if config.Url == "" || config.Appkey == "" {
-		return nil, errors.New("invalid connection config: no url or appkey")
-	}
-
-	if config.Token == "" {
-		if config.Akid == "" || config.Akkey == "" {
-			return nil, errors.New("invalid connection config: if no token provided, must provide akid and akkey")
-		}
-		return NewConnectionConfigWithAKInfoDefault(config.Url, config.Appkey, config.Akid, config.Akkey)
-	} else {
-		return NewConnectionConfigWithToken(config.Url, config.Appkey, config.Token), nil
-	}
-}
-
-type nlsProto struct {
+type dashProto struct {
 	proto      *commonProto
 	conn       *wsConnection
 	connConfig *ConnectionConfig
 	logger     *NlsLogger
-	taskId     string
 	param      interface{}
 }
 
 type commonProto struct {
-	namespace string
-	handlers  map[string]func(isErr bool, text []byte, proto *nlsProto)
+	Model     string
+	TaskGroup string
+	Task      string
+	Function  string
+	handlers  map[string]func(isErr bool, text []byte, proto *dashProto)
 }
 
-func newNlsProto(connConfig *ConnectionConfig,
-	proto *commonProto, logger *NlsLogger, param interface{}) (*nlsProto, error) {
+func newDashProto(connConfig *ConnectionConfig,
+	proto *commonProto, logger *NlsLogger, param interface{}) (*dashProto, error) {
 	if connConfig == nil || proto == nil {
 		return nil, errors.New("connConfig or proto is nil")
 	}
@@ -111,7 +85,7 @@ func newNlsProto(connConfig *ConnectionConfig,
 		return nil, errors.New("invalid proto: nil handler")
 	}
 
-	nls := new(nlsProto)
+	nls := new(dashProto)
 	nls.connConfig = connConfig
 	nls.proto = proto
 	if logger == nil {
@@ -124,14 +98,14 @@ func newNlsProto(connConfig *ConnectionConfig,
 	return nls, nil
 }
 
-func (nls *nlsProto) Connect() error {
+func (nls *dashProto) Connect() error {
 	if nls.conn != nil {
 		nls.conn.shutdown()
 		time.Sleep(time.Millisecond * 100)
 	}
 
 	ws, err := newWsConnection(nls.connConfig.Url,
-		nls.connConfig.Token, 10*time.Second, nls.connConfig.Rbuffer,
+		nls.connConfig.Apikey, 10*time.Second, nls.connConfig.Rbuffer,
 		nls.connConfig.Wbuffer, nls.logger,
 		//recv frame
 		func(rawData bool, data []byte) {
@@ -144,21 +118,17 @@ func (nls *nlsProto) Connect() error {
 					handler(false, data, nls)
 				}
 			} else {
-        nls.logger.Debugf("recv raw frame:%s", string(data))
-        resp := CommonResponse{}
+				nls.logger.Debugf("recv none raw frame:%s", string(data))
+				resp := CommonResponse{}
 				err := json.Unmarshal(data, &resp)
 				if err != nil {
 					nls.logger.Println("OCCUR UNKNOWN PROTO:", err)
 					return
 				}
 
-				if resp.Header.Namespace != "Default" && resp.Header.Namespace != nls.proto.namespace {
-					nls.logger.Fatalf("WTF namespace mismatch expect %s but %s", nls.proto.namespace, resp.Header.Namespace)
-					return
-				}
-				handler, ok := nls.proto.handlers[resp.Header.Name]
+				handler, ok := nls.proto.handlers[resp.Header.Event]
 				if !ok {
-					nls.logger.Printf("no handler for %s", resp.Header.Name)
+					nls.logger.Printf("no handler for %s", resp.Header.Event)
 					return
 				}
 				handler(false, data, nls)
@@ -187,14 +157,14 @@ func (nls *nlsProto) Connect() error {
 	return nil
 }
 
-func (nls *nlsProto) shutdown() error {
+func (nls *dashProto) shutdown() error {
 	if nls.conn == nil {
 		return errors.New("nls proto is nil")
 	}
 	return nls.conn.shutdown()
 }
 
-func (nls *nlsProto) cmd(cmd string) error {
+func (nls *dashProto) cmd(cmd string) error {
 	if nls.conn == nil {
 		return errors.New("nls proto is nil")
 	}
@@ -202,7 +172,7 @@ func (nls *nlsProto) cmd(cmd string) error {
 	return nls.conn.sendTextData(cmd)
 }
 
-func (nls *nlsProto) sendRawData(data []byte) error {
+func (nls *dashProto) sendRawData(data []byte) error {
 	if nls.conn == nil {
 		return errors.New("nls proto is nil")
 	}

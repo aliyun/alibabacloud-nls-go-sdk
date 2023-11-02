@@ -16,13 +16,12 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-
-package nls
+package dash
 
 import (
-	"github.com/satori/go.uuid"
 	"io"
-	"strings"
+
+	uuid "github.com/satori/go.uuid"
 )
 
 const (
@@ -31,30 +30,41 @@ const (
 	SDK_LANGUAGE = "go"
 
 	//AFORMAT
-	PCM  = "pcm"
-	WAV  = "wav"
-	OPUS = "opus"
-	OPU  = "opu"
+	PCM = "pcm"
+	WAV = "wav"
+	MP3 = "mp3"
 
-	//token
-	DEFAULT_DISTRIBUTE = "cn-shanghai"
-	DEFAULT_DOMAIN     = "nls-meta.cn-shanghai.aliyuncs.com"
-	DEFAULT_VERSION    = "2019-02-28"
+	DEFAULT_URL             = "wss://dashscope.aliyuncs.com/api-ws/v1/inference"
+	APIKEY_ENV_KEY_NAME     = "DASHSCOPE_API_KEY"
+	DEFAULT_WS_RBUFFER_SIZE = 4096
+	DEFAULT_WS_WBUFFER_SIZE = 4096
 
-	DEFAULT_SEC_WEBSOCKET_KEY = "x3JJHMbDL1EzLkh9GBhXDw=="
-	DEFAULT_SEC_WEBSOCKET_VER = "13"
+	AUTHORIZATION_KEY = "Authorization"
 
-	DEFAULT_X_NLS_TOKEN_KEY = "X-NLS-Token"
+	TASK_GROUP_AUDIO_NAME             = "audio"
+	TASK_TTS_NAME                     = "tts"
+	TASK_TTS_SYNTHESIZE_FUNCTION_NAME = "SpeechSynthesizer"
 
-	DEFAULT_URL = "wss://nls-gateway.cn-shanghai.aliyuncs.com/ws/v1"
+	TASK_RUN_NAME           = "run-task"
+	STREAMING_NAME          = "streaming"
+	STREAMING_MODE_OUT_NAME = "out"
 
-	TASK_FAILED_NAME = "TaskFailed"
-	
-  AUDIO_FORMAT_KEY        = "format"
-	SAMPLE_RATE_KEY         = "sample_rate"
-	ENABLE_INTERMEDIATE_KEY = "enable_intermediate_result"
-	ENABLE_PP_KEY           = "enable_punctuation_prediction"
-	ENABLE_ITN_KEY          = "enable_inverse_text_normalization"
+	TEXT_TPYE_NAME       = "text_type"
+	PLAIN_TEXT_TYPE_NAME = "PlainText"
+
+	//for audio tts
+	AUDIO_FORMAT_KEY            = "format"
+	VOLUME_KEY                  = "volume"
+	PITCH_KEY                   = "pitch"
+	SAMPLE_RATE_KEY             = "sample_rate"
+	ENABLE_PHONME_TIMESTAMP_KEY = "phoneme_timestamp_enabled"
+	ENABLE_WORD_TIMESTAMP_KEY   = "word_timestamp_enabled"
+
+	//event
+	TASK_STARTED_EVENT_NAME   = "task-started"
+	TASK_RESULT_EVENT_NAME    = "result-generated"
+	TASK_COMPLETED_EVENT_NAME = "task-finished"
+	TASK_FAILED_EVENT_NAME    = "task-failed"
 )
 
 type Chunk struct {
@@ -65,59 +75,39 @@ type ChunkBuffer struct {
 	Data []*Chunk
 }
 
-type TokenResult struct {
-	UserId     string `json:"UserId"`
-	Id         string `json:"Id"`
-	ExpireTime int64  `json:"ExpireTime"`
-}
-
-type TokenResultMessage struct {
-	ErrMsg      string      `json:"ErrMsg"`
-	TokenResult TokenResult `json:"Token"`
-}
-
-type Header struct {
-	MessageId string `json:"message_id"`
+type RequestHeader struct {
+	Action    string `json:"action"`
 	TaskId    string `json:"task_id"`
-	Namespace string `json:"namespace"`
-	Name      string `json:"name"`
-	Appkey    string `json:"appkey"`
+	Streaming string `json:"streaming"`
 }
 
-type SDK struct {
-	Name     string `json:"name"`
-	Version  string `json:"version"`
-	Language string `json:"language"`
+type ResponseHeader struct {
+	TaskId string `json:"task_id"`
+	Event  string `json:"event"`
 }
 
-type Context struct {
-	Sdk       SDK                    `json:"sdk"`
-	App       map[string]interface{} `json:"app,omitempty"`
-	System    map[string]interface{} `json:"system,omitempty"`
-	Device    map[string]interface{} `json:"device,omitempty"`
-	Network   map[string]interface{} `json:"network,omitempty"`
-	Geography map[string]interface{} `json:"geography,omitempty"`
-	Bridge    map[string]interface{} `json:"bridge,omitempty"`
-	Custom    map[string]interface{} `json:"custom,omitempty"`
+type RequestPayload struct {
+	Model      string                 `json:"model"`
+	TaskGroup  string                 `json:"task_group"`
+	Task       string                 `json:"task"`
+	Function   string                 `json:"function"`
+	Input      map[string]interface{} `json:"input"`
+	Parameters map[string]interface{} `json:"parameters"`
 }
 
-var DefaultContext = Context{
-	Sdk: SDK{
-		Name:     SDK_NAME,
-		Version:  SDK_VERSION,
-		Language: SDK_LANGUAGE,
-	},
+type ResponsePayload struct {
+	Oupput map[string]interface{} `json:"output,omitempty"`
+	Usage  map[string]interface{} `json:"usage,omitempty"`
 }
 
 type CommonResponse struct {
-	Header  Header                 `json:"header"`
-	Payload map[string]interface{} `json:"payload,omitempty"`
+	Header  ResponseHeader  `json:"header"`
+	Payload ResponsePayload `json:"payload,omitempty"`
 }
 
 type CommonRequest struct {
-	Header  Header                 `json:"header"`
-	Payload map[string]interface{} `json:"payload,omitempty"`
-	Context Context                `json:"context"`
+	Header  RequestHeader  `json:"header"`
+	Payload RequestPayload `json:"payload"`
 }
 
 func LoadPcmInChunk(r io.Reader, chunkSize int) *ChunkBuffer {
@@ -144,5 +134,5 @@ func LoadPcmInChunk(r io.Reader, chunkSize int) *ChunkBuffer {
 }
 
 func getUuid() string {
-	return strings.ReplaceAll(uuid.NewV4().String(), "-", "")
+	return uuid.NewV4().String()
 }

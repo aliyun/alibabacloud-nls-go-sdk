@@ -16,7 +16,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package nls
+package dash
 
 import (
 	"encoding/json"
@@ -25,40 +25,36 @@ import (
 	"sync"
 )
 
-const (
-	//namespace field
-	TTS_NAMESPACE      = "SpeechSynthesizer"
-	TTS_LONG_NAMESPACE = "SpeechLongSynthesizer"
-	//name field
-	TTS_START_NAME     = "StartSynthesis"
-	TTS_COMPLETED_NAME = "SynthesisCompleted"
-	TTS_METAINFO_NAME  = "MetaInfo"
-)
-
-type SpeechSynthesisStartParam struct {
-	Voice          string `json:"voice"`
-	Format         string `json:"format,omitempty"`
-	SampleRate     int    `json:"sample_rate,omitempty"`
-	Volume         int    `json:"volume"`
-	SpeechRate     int    `json:"speech_rate"`
-	PitchRate      int    `json:"pitch_rate"`
-	EnableSubtitle bool   `json:"enable_subtitle"`
+type SpeechSynthesisParam struct {
+	TextType               string  `json:"text_type"`
+	Format                 string  `json:"format,omitempty"`
+	SampleRate             int     `json:"sample_rate,omitempty"`
+	Volume                 int     `json:"volume"`
+	Rate                   float32 `json:"rate"`
+	Pitch                  float32 `json:"pitch"`
+	EnablePhonemeTimestamp bool    `json:"phoneme_timestamp_enabled"`
+	EnableWordTimestamp    bool    `json:"word_timestamp_enabled"`
 }
 
-func DefaultSpeechSynthesisParam() SpeechSynthesisStartParam {
-	return SpeechSynthesisStartParam{
-		Voice:          "xiaoyun",
-		Format:         "wav",
-		SampleRate:     16000,
-		Volume:         50,
-		SpeechRate:     0,
-		PitchRate:      0,
-		EnableSubtitle: false,
+func DefaultSpeechSynthesisParam() SpeechSynthesisParam {
+	return SpeechSynthesisParam{
+		TextType:               PLAIN_TEXT_TYPE_NAME,
+		Format:                 "wav",
+		SampleRate:             16000,
+		Volume:                 50,
+		Rate:                   1.0,
+		Pitch:                  1.0,
+		EnablePhonemeTimestamp: false,
+		EnableWordTimestamp:    false,
 	}
 }
 
+type SpeechSynthesisInput struct {
+	Text string `json:"text"`
+}
+
 type SpeechSynthesis struct {
-	nls    *nlsProto
+	dash   *dashProto
 	taskId string
 
 	completeChan chan bool
@@ -69,14 +65,14 @@ type SpeechSynthesis struct {
 	onCompleted       func(text string, param interface{})
 	onMetaInfo        func(text string, param interface{})
 	onClose           func(param interface{})
+	onStarted         func(taskid string, param interface{})
 
 	StartParam map[string]interface{}
+	InputParam map[string]interface{}
 	UserParam  interface{}
-
-	usingLong bool
 }
 
-func checkTtsNlsProto(proto *nlsProto) *SpeechSynthesis {
+func checkTtsNlsProto(proto *dashProto) *SpeechSynthesis {
 	if proto == nil {
 		log.Default().Fatal("empty proto check failed")
 		return nil
@@ -91,7 +87,7 @@ func checkTtsNlsProto(proto *nlsProto) *SpeechSynthesis {
 	return tts
 }
 
-func onTtsTaskFailedHandler(isErr bool, text []byte, proto *nlsProto) {
+func onTtsTaskFailedHandler(isErr bool, text []byte, proto *dashProto) {
 	tts := checkTtsNlsProto(proto)
 	if tts.onTaskFailed != nil {
 		tts.onTaskFailed(string(text), tts.UserParam)
@@ -106,51 +102,59 @@ func onTtsTaskFailedHandler(isErr bool, text []byte, proto *nlsProto) {
 	}
 }
 
-func onTtsConnectedHandler(isErr bool, text []byte, proto *nlsProto) {
+func onTtsConnectedHandler(isErr bool, text []byte, proto *dashProto) {
 	tts := checkTtsNlsProto(proto)
 
 	req := CommonRequest{}
-	req.Context = DefaultContext
-	req.Header.Appkey = tts.nls.connConfig.Appkey
-	req.Header.MessageId = getUuid()
-	req.Header.Name = TTS_START_NAME
-	if tts.usingLong {
-		req.Header.Namespace = TTS_LONG_NAMESPACE
-	} else {
-		req.Header.Namespace = TTS_NAMESPACE
-	}
-	req.Header.TaskId = tts.taskId
-	req.Payload = tts.StartParam
+	req.Header.TaskId = getUuid()
+	req.Header.Action = TASK_RUN_NAME
+	req.Header.Streaming = STREAMING_MODE_OUT_NAME
+	req.Payload.Model = tts.dash.proto.Model
+	req.Payload.TaskGroup = tts.dash.proto.TaskGroup
+	req.Payload.Task = tts.dash.proto.Task
+	req.Payload.Function = tts.dash.proto.Function
+	req.Payload.Input = tts.InputParam
+	req.Payload.Parameters = tts.StartParam
+
+	tts.taskId = req.Header.TaskId
 
 	b, _ := json.Marshal(req)
-	tts.nls.logger.Println("send:", string(b))
-	tts.nls.cmd(string(b))
+	tts.dash.logger.Println("send:", string(b))
+	tts.dash.cmd(string(b))
 }
 
-func onTtsCloseHandler(isErr bool, text []byte, proto *nlsProto) {
+func onTtsTaskStartedHandler(isErr bool, text []byte, proto *dashProto) {
+	tts := checkTtsNlsProto(proto)
+
+	if tts.onStarted != nil {
+		tts.onStarted(tts.taskId, tts.UserParam)
+	}
+}
+
+func onTtsCloseHandler(isErr bool, text []byte, proto *dashProto) {
 	tts := checkTtsNlsProto(proto)
 	if tts.onClose != nil {
 		tts.onClose(tts.UserParam)
 	}
 
-	tts.nls.shutdown()
+	tts.dash.shutdown()
 }
 
-func onTtsMetaInfoHandler(isErr bool, text []byte, proto *nlsProto) {
+func onTtsMetaInfoHandler(isErr bool, text []byte, proto *dashProto) {
 	tts := checkTtsNlsProto(proto)
 	if tts.onMetaInfo != nil {
 		tts.onMetaInfo(string(text), tts.UserParam)
 	}
 }
 
-func onTtsRawResultHandler(isErr bool, text []byte, proto *nlsProto) {
+func onTtsRawResultHandler(isErr bool, text []byte, proto *dashProto) {
 	tts := checkTtsNlsProto(proto)
 	if tts.onSynthesisResult != nil {
 		tts.onSynthesisResult(text, tts.UserParam)
 	}
 }
 
-func onTtsCompletedHandler(isErr bool, text []byte, proto *nlsProto) {
+func onTtsCompletedHandler(isErr bool, text []byte, proto *dashProto) {
 	tts := checkTtsNlsProto(proto)
 	if tts.onCompleted != nil {
 		tts.onCompleted(string(text), tts.UserParam)
@@ -166,27 +170,24 @@ func onTtsCompletedHandler(isErr bool, text []byte, proto *nlsProto) {
 }
 
 var ttsProto = commonProto{
-	namespace: TTS_NAMESPACE,
-	handlers: map[string]func(bool, []byte, *nlsProto){
-		CLOSE_HANDLER:      onTtsCloseHandler,
-		CONNECTED_HANDLER:  onTtsConnectedHandler,
-		RAW_HANDLER:        onTtsRawResultHandler,
-		TTS_COMPLETED_NAME: onTtsCompletedHandler,
-		TASK_FAILED_NAME:   onTtsTaskFailedHandler,
-		TTS_METAINFO_NAME:  onTtsMetaInfoHandler,
+	Model:     "",
+	TaskGroup: TASK_GROUP_AUDIO_NAME,
+	Task:      TASK_TTS_NAME,
+	Function:  TASK_TTS_SYNTHESIZE_FUNCTION_NAME,
+	handlers: map[string]func(bool, []byte, *dashProto){
+		CLOSE_HANDLER:             onTtsCloseHandler,
+		CONNECTED_HANDLER:         onTtsConnectedHandler,
+		RAW_HANDLER:               onTtsRawResultHandler,
+		TASK_STARTED_EVENT_NAME:   onTtsTaskStartedHandler,
+		TASK_COMPLETED_EVENT_NAME: onTtsCompletedHandler,
+		TASK_FAILED_EVENT_NAME:    onTtsTaskFailedHandler,
+		TASK_RESULT_EVENT_NAME:    onTtsMetaInfoHandler,
 	},
-}
-
-func newSpeechSynthesisProto(isRealtime bool) *commonProto {
-	if isRealtime {
-		ttsProto.namespace = TTS_LONG_NAMESPACE
-	}
-	return &ttsProto
 }
 
 func NewSpeechSynthesis(config *ConnectionConfig,
 	logger *NlsLogger,
-	realtimeLongText bool,
+	started func(string, interface{}),
 	taskfailed func(string, interface{}),
 	synthesisresult func([]byte, interface{}),
 	metainfo func(string, interface{}),
@@ -194,33 +195,39 @@ func NewSpeechSynthesis(config *ConnectionConfig,
 	closed func(interface{}),
 	param interface{}) (*SpeechSynthesis, error) {
 	tts := new(SpeechSynthesis)
-	proto := newSpeechSynthesisProto(realtimeLongText)
+	proto := &ttsProto
 	if logger == nil {
 		logger = DefaultNlsLog()
 	}
 
-	nls, err := newNlsProto(config, proto, logger, tts)
+	dash, err := newDashProto(config, proto, logger, tts)
 	if err != nil {
 		return nil, err
 	}
 
-	tts.nls = nls
+	tts.dash = dash
 	tts.UserParam = param
 	tts.onTaskFailed = taskfailed
 	tts.onSynthesisResult = synthesisresult
 	tts.onMetaInfo = metainfo
 	tts.onCompleted = completed
 	tts.onClose = closed
-	tts.usingLong = realtimeLongText
+
 	return tts, nil
 }
 
-func (tts *SpeechSynthesis) Start(text string,
-	param SpeechSynthesisStartParam,
+func (tts *SpeechSynthesis) Start(model string,
+	text string,
+	param SpeechSynthesisParam,
 	extra map[string]interface{}) (chan bool, error) {
-	if tts.nls == nil {
-		return nil, errors.New("empty nls: using NewSpeechSynthesis to create a valid instance")
+	if tts.dash == nil {
+		return nil, errors.New("empty dash obj: using NewSpeechSynthesis to create a valid instance")
 	}
+
+	if model == "" {
+		return nil, errors.New("empty model")
+	}
+	tts.dash.proto.Model = model
 
 	b, err := json.Marshal(param)
 	if err != nil {
@@ -237,9 +244,18 @@ func (tts *SpeechSynthesis) Start(text string,
 			}
 		}
 	}
-	tts.StartParam["text"] = text
-	tts.taskId = getUuid()
-	err = tts.nls.Connect()
+
+	input := SpeechSynthesisInput{
+		Text: text,
+	}
+
+	b, err = json.Marshal(input)
+	if err != nil {
+		return nil, err
+	}
+
+	json.Unmarshal(b, &tts.InputParam)
+	err = tts.dash.Connect()
 	if err != nil {
 		return nil, err
 	}
@@ -251,13 +267,13 @@ func (tts *SpeechSynthesis) Start(text string,
 }
 
 func (tts *SpeechSynthesis) Shutdown() {
-	if tts.nls == nil {
+	if tts.dash == nil {
 		return
 	}
 
 	tts.lk.Lock()
 	defer tts.lk.Unlock()
-	tts.nls.shutdown()
+	tts.dash.shutdown()
 	if tts.completeChan != nil {
 		tts.completeChan <- false
 		close(tts.completeChan)

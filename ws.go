@@ -16,14 +16,15 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package nls
+package dash
 
 import (
 	"errors"
 	"time"
 
-	"github.com/gorilla/websocket"
 	"net/http"
+
+	"github.com/gorilla/websocket"
 )
 
 type wsConnection struct {
@@ -35,7 +36,7 @@ type wsConnection struct {
 	logger *NlsLogger
 }
 
-func newWsConnection(url string, token string, handshakeTimeout time.Duration,
+func newWsConnection(url string, apikey string, handshakeTimeout time.Duration,
 	readBufferSize int, writeBufferSize int, logger *NlsLogger,
 	recvHandler func(rawData bool, data []byte),
 	closeHandler func(code int, text string, err error)) (*wsConnection, error) {
@@ -52,7 +53,8 @@ func newWsConnection(url string, token string, handshakeTimeout time.Duration,
 
 	retry := 0
 	for {
-		err := connection.issueWsConnect(url, token, handshakeTimeout, readBufferSize, writeBufferSize)
+		connection.logger.Debugf("url=%s, apikey=%s, handshakeTimeout=%d, readBufferSize=%d, writeBufferSize=%d", url, apikey, handshakeTimeout, readBufferSize, writeBufferSize)
+		err := connection.issueWsConnect(url, apikey, handshakeTimeout, readBufferSize, writeBufferSize)
 		if err != nil {
 			if err.Error() == "EOF" {
 				connection.logger.Debugf("connection(%p) connect failed: %s retry: %d", connection, err, retry)
@@ -60,7 +62,7 @@ func newWsConnection(url string, token string, handshakeTimeout time.Duration,
 				if retry >= 5 {
 					return nil, err
 				}
-        time.Sleep(10 * time.Millisecond)
+				time.Sleep(10 * time.Millisecond)
 			} else {
 				connection.logger.Debugf("connection(%p) connect failed: %s", connection, err)
 				return nil, err
@@ -83,9 +85,9 @@ func newWsConnection(url string, token string, handshakeTimeout time.Duration,
 	return connection, nil
 }
 
-func (conn *wsConnection) issueWsConnect(url string, token string, handshakeTimeout time.Duration, readBufferSize int, writeBufferSize int) error {
+func (conn *wsConnection) issueWsConnect(url string, apikey string, handshakeTimeout time.Duration, readBufferSize int, writeBufferSize int) error {
 	header := http.Header{
-		DEFAULT_X_NLS_TOKEN_KEY: []string{token},
+		AUTHORIZATION_KEY: []string{"bearer " + apikey},
 	}
 
 	dialer := websocket.Dialer{

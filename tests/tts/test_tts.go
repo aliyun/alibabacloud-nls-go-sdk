@@ -13,20 +13,12 @@ import (
 	"sync"
 	"time"
 
-	"github.com/aliyun/alibabacloud-nls-go-sdk"
-)
-
-const (
-	AKID  = "Your AKID"
-	AKKEY = "Your AKKEY"
-	//online key
-	APPKEY = "Your APPKEY"
-	TOKEN  = "TEST TOKEN"
+	dash "github.com/aliyun/alibabacloud-dash-go-sdk"
 )
 
 type TtsUserParam struct {
 	F      io.Writer
-	Logger *nls.NlsLogger
+	Logger *dash.NlsLogger
 }
 
 func onTaskFailed(text string, param interface{}) {
@@ -68,7 +60,16 @@ func onClose(param interface{}) {
 	p.Logger.Println("onClosed:")
 }
 
-func waitReady(ch chan bool, logger *nls.NlsLogger) error {
+func onTaskStarted(taskid string, param interface{}) {
+	p, of := param.(*TtsUserParam)
+	if !of {
+		log.Default().Fatal("invalid logger")
+		return
+	}
+	p.Logger.Println("onTaskStarted:", taskid)
+}
+
+func waitReady(ch chan bool, logger *dash.NlsLogger) error {
 	select {
 	case done := <-ch:
 		{
@@ -95,10 +96,15 @@ const (
 	TEXT = "你好小德，今天天气怎么样。"
 )
 
-func testMultiInstance(num int) {
-	param := nls.DefaultSpeechSynthesisParam()
-	config := nls.NewConnectionConfigWithToken(nls.DEFAULT_URL,
-		APPKEY, TOKEN)
+func testMultiInstance(num int, model string) {
+	param := dash.DefaultSpeechSynthesisParam()
+	param.EnableWordTimestamp = true
+	param.EnablePhonemeTimestamp = true
+	config, e := dash.NewConnectionConfigDefault()
+	if e != nil {
+		log.Fatal(e)
+		return
+	}
 	var wg sync.WaitGroup
 	for i := 0; i < num; i++ {
 		wg.Add(1)
@@ -108,14 +114,14 @@ func testMultiInstance(num int) {
 			fname := fmt.Sprintf("ttsdump%d.wav", id)
 			ttsUserParam := new(TtsUserParam)
 			fout, err := os.OpenFile(fname, os.O_RDWR|os.O_TRUNC|os.O_CREATE, 0666)
-			logger := nls.NewNlsLogger(os.Stderr, strId, log.LstdFlags|log.Lmicroseconds)
+			logger := dash.NewNlsLogger(os.Stderr, strId, log.LstdFlags|log.Lmicroseconds)
 			logger.SetLogSil(false)
 			logger.SetDebug(true)
 			logger.Printf("Test Normal Case for SpeechRecognition:%s", strId)
 			ttsUserParam.F = fout
 			ttsUserParam.Logger = logger
 			//third param control using realtime long text tts
-      tts, err := nls.NewSpeechSynthesis(config, logger, false,
+			tts, err := dash.NewSpeechSynthesis(config, logger, onTaskStarted,
 				onTaskFailed, onSynthesisResult, nil,
 				onCompleted, onClose, ttsUserParam)
 			if err != nil {
@@ -127,13 +133,14 @@ func testMultiInstance(num int) {
 				lk.Lock()
 				reqNum++
 				lk.Unlock()
-				logger.Println("SR start")
-				ch, err := tts.Start(TEXT, param, nil)
+				logger.Printf("TTS start: model=%s", model)
+				ch, err := tts.Start(model, TEXT, param, nil)
 				if err != nil {
 					lk.Lock()
 					fail++
 					lk.Unlock()
 					tts.Shutdown()
+					time.Sleep(time.Second * 2)
 					continue
 				}
 
@@ -143,10 +150,12 @@ func testMultiInstance(num int) {
 					fail++
 					lk.Unlock()
 					tts.Shutdown()
+					time.Sleep(time.Second * 2)
 					continue
 				}
 				logger.Println("Synthesis done")
 				tts.Shutdown()
+				break
 			}
 		}(i)
 	}
@@ -159,6 +168,7 @@ func main() {
 		log.Default().Println(http.ListenAndServe(":6060", nil))
 	}()
 	coroutineId := flag.Int("num", 1, "coroutine number")
+	modelId := flag.String("model", "sambert-zhimao-v1", "model id")
 	flag.Parse()
 	log.Default().Printf("start %d coroutines", *coroutineId)
 
@@ -172,5 +182,5 @@ func main() {
 			os.Exit(0)
 		}
 	}()
-	testMultiInstance(*coroutineId)
+	testMultiInstance(*coroutineId, *modelId)
 }

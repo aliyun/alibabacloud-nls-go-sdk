@@ -1,6 +1,6 @@
-# NLS Go SDK说明
+# NLS Go Dashscope SDK说明
 
-> 本文介绍如何使用阿里云智能语音服务提供的Go SDK，包括SDK的安装方法及SDK代码示例。
+> 本文介绍如何使用阿里云智能语音服务为DashScope平台提供的Go SDK，包括SDK的安装方法及SDK代码示例。
 
 
 
@@ -17,15 +17,16 @@
 
 1. 下载SDK
 
-通过以下命令完成SDK下载和安装：
+通过以下命令获取SDK
 
-> go get github.com/aliyun/alibabacloud-nls-go-sdk
+> go get -u github.com/aliyun/alibabacloud-nls-go-sdk@v2.0.0
+
 
 2. 导入SDK
 
 在代码中通过将以下字段加入import来导入SDK：
 
-> import ("github.com/aliyun/alibabacloud-nls-go-sdk")
+> import ("github.com/aliyun/alibabacloud-dash-go-sdk")
 
 
 
@@ -36,12 +37,9 @@
 | SDK_VERSION        | SDK版本                                                      |
 | PCM                | pcm音频格式                                                  |
 | WAV                | wav音频格式                                                  |
-| OPUS               | opus音频格式                                                 |
-| OPU                | opu音频格式                                                  |
-| DEFAULT_DISTRIBUTE | 获取token时使用的默认区域，"cn-shanghai"                     |
-| DEFAULT_DOMAIN     | 获取token时使用的默认URL，"nls-meta.cn-shanghai.aliyuncs.com" |
-| DEFAULT_VERSION    | 获取token时使用的协议版本，"2019-02-28"                      |
-| DEFAULT_URL        | 默认公有云URL，"wss://nls-gateway.cn-shanghai.aliyuncs.com/ws/v1" |
+| DEFAULT_URL        | 默认公有云URL，"wss://dashscope.aliyuncs.com/api-ws/v1/inference"" |
+| DEFAULT_WS_RBUFFER_SIZE | 默认Websocket读Buffer长度，4096 |
+| DEFAULT_WS_WBUFFER_SIZE | 默认Websocket写Buffer长度，4096 |
 
 
 
@@ -179,58 +177,30 @@ NlsLogger对象指针
 
 
 
-## 获取token
-
-### 1. func GetToken(dist string, domain string, akid string, akkey string, version string) (*TokenResultMessage, error)
-
-> 获取访问token
-
-参数说明：
-
-| 参数    | 类型   | 参数说明                                    |
-| ------- | ------ | ------------------------------------------- |
-| dist    | string | 区域，如果不确定，请使用DEFAULT_DISTRIBUTE  |
-| domain  | string | URL，如果不确定，请使用DEFAULT_DOMAIN       |
-| akid    | string | 阿里云accessid                              |
-| akkey   | string | 阿里云accesskey                             |
-| version | string | 协议版本，如果不确定，请使用DEFAULT_VERSION |
-
-返回值：
-
-TokenResultMessage对象指针和错误信息
-
-
-
 ## 建立连接
 
-### 1. ConnectionConfig
+### 1. NewConnectionConfigDefault
 
-> 用于建立连接的基础参数
+> 使用默认参数创建连接配置，该接口会通过”DASHSCOPE_API_KEY“环境变量来获取APIKEY，如果没有设置，该接口会报错，同时该接口使用默认URL，和1024读Buffer及4096写Buffer长度
+
+参数说明：
+
+无
+
+
+
+### 2. func NewConnectionConfigWithUrlApiKey(url string, apikey string, rbuffer int, wbuffer int) (*ConnectionConfig, error) 
+
+> 通过url，apikey，rbuffer和wbuffer创建连接参数
 
 参数说明：
 
 | 参数   | 类型   | 参数说明                                         |
 | ------ | ------ | ------------------------------------------------ |
-| Url    | string | 访问的公有云URL，如果不确定，可以使用DEFAULT_URL |
-| Token  | string | 通过GetToken获取的token或者测试token             |
-| Akid   | string | 阿里云accessid                                   |
-| Akkey  | string | 阿里云accesskey                                  |
-| Appkey | string | appkey，可以在控制台中对应项目上看到             |
-
-
-
-### 2. func NewConnectionConfigWithAKInfoDefault(url string, appkey string, akid string, akkey string) (*ConnectionConfig, error) 
-
-> 通过url，appkey，akid和akkey创建连接参数，等效于先调用GetToken然后再调用NewConnectionConfigWithToken
-
-参数说明：
-
-| 参数   | 类型   | 参数说明                                         |
-| ------ | ------ | ------------------------------------------------ |
-| Url    | string | 访问的公有云URL，如果不确定，可以使用DEFAULT_URL |
-| Appkey | string | appkey，可以在控制台中对应项目上看到             |
-| Akid   | string | 阿里云accessid                                   |
-| Akkey  | string | 阿里云accesskey                                  |
+| url    | string | 访问的DashScope URL，如果不确定，可以使用DEFAULT_URL |
+| apikey | string | apikey，可以在控制台中对应项目上看到，不建议在使用中明文暴露，会有泄露风险    |
+| rbuffer   | int | Websocket读缓冲长度，默认为4096，大多数情况可以不修改               |
+| wbuffer  | int |  Websocket写缓冲长度，默认为4096，大多数情况可以不修改               |
 
 返回值：
 
@@ -239,56 +209,23 @@ TokenResultMessage对象指针和错误信息
 error：异常对象，为nil则无异常
 
 
-
-### 3. func NewConnectionConfigWithToken(url string, appkey string, token string) *ConnectionConfig 
-
-> 通过url，appkey和token创建连接参数
-
-参数说明：
-
-| 参数   | 类型   | 参数说明                                         |
-| ------ | ------ | ------------------------------------------------ |
-| Url    | string | 访问的公有云URL，如果不确定，可以使用DEFAULT_URL |
-| Appkey | string | appkey，可以在控制台中对应项目上看到             |
-| Token  | string | 已经通过GetToken或其他方式获取的token            |
-
-返回值：
-
-*ConnectionConfig：连接参数对象指针
-
-
-
-### 4. func NewConnectionConfigFromJson(jsonStr string) (*ConnectionConfig, error) 
-
-> 通过json字符串来创建连接参数
-
-参数说明
-
-| 参数    | 类型   | 参数说明                                                     |
-| ------- | ------ | ------------------------------------------------------------ |
-| jsonStr | string | 描述连接参数的json字符串，有效字段如下：url，token，akid，akkey，appkey。其中必须包含url和appkey，如果包含token则不需要包含akid和akkey |
-
-返回值：
-
-*ConnectionConfig：连接对象指针
-
-
-
 ## 语音合成
 
 ### 1. SpeechSynthesisStartParam
+
 
 参数说明:
 
 | 参数           | 类型   | 参数说明                      |
 | -------------- | ------ | ----------------------------- |
-| Voice          | string | 发音人，默认“xiaoyun”         |
+| TextType       | string | 不需要修改，为“PlainText”     |
 | Format         | string | 音频格式，默认使用wav         |
 | SampleRate     | int    | 采样率，默认16000             |
 | Volume         | int    | 音量，范围为0-100，默认50     |
-| SpeechRate     | int    | 语速，范围为-500-500，默认为0 |
-| PitchRate      | int    | 音高，范围为-500-500，默认为0 |
-| EnableSubtitle | bool   | 字幕功能，默认为false         |
+| Rate            | float32    | 语速，范围为0.5-2.0，默认为1.0 |
+| Pitch         | float32    | 音高，范围为0.5-2.0，默认为1.0 |
+| EnableWordTimestamp | bool   | 字幕功能，默认为false         |
+| EnablePhonemeTimestamp | bool   | 音素字幕功能，默认为false，开启同时需要先开启字幕功能  |
 
 ### 2.  func DefaultSpeechSynthesisParam() SpeechSynthesisStartParam
 
@@ -312,7 +249,7 @@ SpeechSynthesisStartParam：语音合成参数
 | --------------- | ------------------------- | ----------------------------------------------------- |
 | config          | *ConnectionConfig         | 见上文建立连接相关内容                                |
 | logger          | *NlsLogger                | 见SDK日志相关内容                                     |
-| realtime        | bool                      | 是否使用实时长文本，默认为短文本                      |
+| started        | func(string, interface{})  | 连接建立回调，第一个参数为taskid，第二个参数为用户自定义参数  |
 | taskfailed      | func(string, interface{}) | 识别过程中的错误处理回调，interface{}为用户自定义参数 |
 | synthesisresult | func([]byte, interface{}) | 语音合成数据回调                                      |
 | metainfo        | func(string, interface{}) | 字幕数据回调，需要参数中EnableSubtitle为true          |
@@ -324,7 +261,7 @@ SpeechSynthesisStartParam：语音合成参数
 
 无
 
-### 4. func (tts *SpeechSynthesis) Start(text string, param SpeechSynthesisStartParam, extra map[string]interface{}) (chan bool, error) 
+### 4. func (tts *SpeechSynthesis) Start(model string, text string, param SpeechSynthesisStartParam, extra map[string]interface{}) (chan bool, error) 
 
 > 给定文本和参数进行语音合成
 
@@ -332,6 +269,7 @@ SpeechSynthesisStartParam：语音合成参数
 
 | 参数  | 类型                          | 参数说明          |
 | ----- | ----------------------------- | ----------------- |
+| model | string                        | 调用模型名        |
 | text  | string                        | 待合成文本        |
 | param | SpeechTranscriptionStartParam | 语音合成参数      |
 | extra | map[string]interface{}        | 额外key value参数 |
@@ -358,93 +296,96 @@ error：错误异常
 
 ### 代码示例：
 
-```python
+下面代码通过num传入并行实例数，通过model传入模型名称，可以参考run_tts_test.sh脚本。
+```go
 package main
 
 import (
-        "errors"
-        "flag"
-        "fmt"
-        "io"
-        "log"
-        "os"
-        "os/signal"
-        "sync"
-        "time"
+	"errors"
+	"flag"
+	"fmt"
+	"io"
+	"log"
+	"net/http"
+	_ "net/http/pprof"
+	"os"
+	"os/signal"
+	"sync"
+	"time"
 
-        "github.com/aliyun/alibabacloud-nls-go-sdk"
-)
-
-const (
-  		AKID  = "Your AKID"
-        AKKEY = "Your AKKEY"
-        //online key
-        APPKEY = "Your APPKEY"
-        TOKEN  = "Your TOKEN"
+	dash "github.com/aliyun/alibabacloud-dash-go-sdk"
 )
 
 type TtsUserParam struct {
-        F           io.Writer
-        Logger      *nls.NlsLogger
+	F      io.Writer
+	Logger *dash.NlsLogger
 }
 
 func onTaskFailed(text string, param interface{}) {
-        p, ok := param.(*TtsUserParam)
-        if !ok {
-                log.Default().Fatal("invalid logger")
-                return
-        }
+	p, ok := param.(*TtsUserParam)
+	if !ok {
+		log.Default().Fatal("invalid logger")
+		return
+	}
 
-        p.Logger.Println("TaskFailed:", text)
+	p.Logger.Println("TaskFailed:", text)
 }
 
 func onSynthesisResult(data []byte, param interface{}) {
-        p, ok := param.(*TtsUserParam)
-        if !ok {
-                log.Default().Fatal("invalid logger")
-                return
-        }
-        p.F.Write(data)
+	p, ok := param.(*TtsUserParam)
+	if !ok {
+		log.Default().Fatal("invalid logger")
+		return
+	}
+	p.F.Write(data)
 }
 
 func onCompleted(text string, param interface{}) {
-        p, ok := param.(*TtsUserParam)
-        if !ok {
-                log.Default().Fatal("invalid logger")
-                return
-        }
+	p, ok := param.(*TtsUserParam)
+	if !ok {
+		log.Default().Fatal("invalid logger")
+		return
+	}
 
-        p.Logger.Println("onCompleted:", text)
+	p.Logger.Println("onCompleted:", text)
 }
-
 
 func onClose(param interface{}) {
-        p, ok := param.(*TtsUserParam)
-        if !ok {
-                log.Default().Fatal("invalid logger")
-                return
-        }
+	p, ok := param.(*TtsUserParam)
+	if !ok {
+		log.Default().Fatal("invalid logger")
+		return
+	}
 
-        p.Logger.Println("onClosed:")
+	p.Logger.Println("onClosed:")
 }
 
-func waitReady(ch chan bool, logger *nls.NlsLogger) error {
-        select {
-        case done := <-ch:
-                {
-                        if !done {
-                                logger.Println("Wait failed")
-                                return errors.New("wait failed")
-                        }
-                        logger.Println("Wait done")
-                }
-        case <-time.After(60 * time.Second):
-                {
-                        logger.Println("Wait timeout")
-                        return errors.New("wait timeout")
-                }
-        }
-        return nil
+func onTaskStarted(taskid string, param interface{}) {
+	p, of := param.(*TtsUserParam)
+	if !of {
+		log.Default().Fatal("invalid logger")
+		return
+	}
+	p.Logger.Println("onTaskStarted:", taskid)
+}
+
+func waitReady(ch chan bool, logger *dash.NlsLogger) error {
+	select {
+	case done := <-ch:
+		{
+			if !done {
+				logger.Println("Wait failed")
+				return errors.New("wait failed")
+			}
+			logger.Println("Wait done")
+		}
+	case <-time.After(60 * time.Second):
+		{
+			logger.Println("Wait timeout")
+			return errors.New("wait timeout")
+		}
+	}
+	return nil
 }
 
 var lk sync.Mutex
@@ -452,83 +393,98 @@ var fail = 0
 var reqNum = 0
 
 const (
-        TEXT = "你好小德，今天天气怎么样。"
+	TEXT = "你好小德，今天天气怎么样。"
 )
 
-func testMultiInstance(num int) {
-        param := nls.DefaultSpeechSynthesisParam()
-    	  config,_ := nls.NewConnectionConfigWithAKInfoDefault(nls.DEFAULT_URL, APPKEY, AKID, AKKEY)
-        var wg sync.WaitGroup
-        for i := 0; i < num; i++ {
-                wg.Add(1)
-                go func(id int) {
-                        defer wg.Done()
-                        strId := fmt.Sprintf("ID%d   ", id)
-                        fname := fmt.Sprintf("ttsdump%d.wav", id)
-                        ttsUserParam := new(TtsUserParam)
-                        fout, err := os.OpenFile(fname, os.O_RDWR|os.O_TRUNC|os.O_CREATE, 0666)
-                        logger := nls.NewNlsLogger(os.Stderr, strId, log.LstdFlags|log.Lmicroseconds)
-                        logger.SetLogSil(false)
-                        logger.SetDebug(true)
-                        logger.Printf("Test Normal Case for SpeechRecognition:%s", strId)
-                        ttsUserParam.F = fout
-                        ttsUserParam.Logger = logger
-                        tts, err := nls.NewSpeechSynthesis(config, logger, false,
-                                onTaskFailed, onSynthesisResult, nil,
-                                onCompleted, onClose, ttsUserParam)
-                        if err != nil {
-                                logger.Fatalln(err)
-                                return
-                        }
+func testMultiInstance(num int, model string) {
+	param := dash.DefaultSpeechSynthesisParam()
+	param.EnableWordTimestamp = true
+	param.EnablePhonemeTimestamp = true
+	config, e := dash.NewConnectionConfigDefault()
+	if e != nil {
+		log.Fatal(e)
+		return
+	}
+	var wg sync.WaitGroup
+	for i := 0; i < num; i++ {
+		wg.Add(1)
+		go func(id int) {
+			defer wg.Done()
+			strId := fmt.Sprintf("ID%d   ", id)
+			fname := fmt.Sprintf("ttsdump%d.wav", id)
+			ttsUserParam := new(TtsUserParam)
+			fout, err := os.OpenFile(fname, os.O_RDWR|os.O_TRUNC|os.O_CREATE, 0666)
+			logger := dash.NewNlsLogger(os.Stderr, strId, log.LstdFlags|log.Lmicroseconds)
+			logger.SetLogSil(false)
+			logger.SetDebug(true)
+			logger.Printf("Test Normal Case for SpeechRecognition:%s", strId)
+			ttsUserParam.F = fout
+			ttsUserParam.Logger = logger
+			//third param control using realtime long text tts
+			tts, err := dash.NewSpeechSynthesis(config, logger, onTaskStarted,
+				onTaskFailed, onSynthesisResult, nil,
+				onCompleted, onClose, ttsUserParam)
+			if err != nil {
+				logger.Fatalln(err)
+				return
+			}
 
-                        for {
-                                lk.Lock()
-                                reqNum++
-                                lk.Unlock()
-                                logger.Println("SR start")
-                                ch, err := tts.Start(TEXT, param, nil)
-                                if err != nil {
-                                        lk.Lock()
-                                        fail++
-                                        lk.Unlock()
-                                        tts.Shutdown()
-                                        continue
-                                }
+			for {
+				lk.Lock()
+				reqNum++
+				lk.Unlock()
+				logger.Printf("TTS start: model=%s", model)
+				ch, err := tts.Start(model, TEXT, param, nil)
+				if err != nil {
+					lk.Lock()
+					fail++
+					lk.Unlock()
+					tts.Shutdown()
+					time.Sleep(time.Second * 2)
+					continue
+				}
 
-                                err = waitReady(ch, logger)
-                                if err != nil {
-                                        lk.Lock()
-                                        fail++
-                                        lk.Unlock()
-                                        tts.Shutdown()
-                                        continue
-                                }
-                                logger.Println("Synthesis done")
-                                tts.Shutdown()
-                        }
-                }(i)
-        }
+				err = waitReady(ch, logger)
+				if err != nil {
+					lk.Lock()
+					fail++
+					lk.Unlock()
+					tts.Shutdown()
+					time.Sleep(time.Second * 2)
+					continue
+				}
+				logger.Println("Synthesis done")
+				tts.Shutdown()
+				break
+			}
+		}(i)
+	}
 
-        wg.Wait()
+	wg.Wait()
 }
 
 func main() {
-        coroutineId := flag.Int("num", 1, "coroutine number")
-        flag.Parse()
-        log.Default().Printf("start %d coroutines", *coroutineId)
+	go func() {
+		log.Default().Println(http.ListenAndServe(":6060", nil))
+	}()
+	coroutineId := flag.Int("num", 1, "coroutine number")
+	modelId := flag.String("model", "sambert-zhimao-v1", "model id")
+	flag.Parse()
+	log.Default().Printf("start %d coroutines", *coroutineId)
 
-        c := make(chan os.Signal, 1)
-        signal.Notify(c, os.Interrupt)
-        go func() {
-                for range c {
-                        lk.Lock()
-                        log.Printf(">>>>>>>>REQ NUM: %d>>>>>>>>>FAIL: %d", reqNum, fail)
-                        lk.Unlock()
-                        os.Exit(0)
-                }
-        }()
-        testMultiInstance(*coroutineId)
+	c := make(chan os.Signal, 1)
+	signal.Notify(c, os.Interrupt)
+	go func() {
+		for range c {
+			lk.Lock()
+			log.Printf(">>>>>>>>REQ NUM: %d>>>>>>>>>FAIL: %d", reqNum, fail)
+			lk.Unlock()
+			os.Exit(0)
+		}
+	}()
+	testMultiInstance(*coroutineId, *modelId)
 }
+
 
 ```
 
