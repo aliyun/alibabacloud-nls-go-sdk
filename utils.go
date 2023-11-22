@@ -16,13 +16,13 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-
 package nls
 
 import (
-	"github.com/satori/go.uuid"
 	"io"
 	"strings"
+
+	uuid "github.com/satori/go.uuid"
 )
 
 const (
@@ -48,9 +48,10 @@ const (
 
 	DEFAULT_URL = "wss://nls-gateway.cn-shanghai.aliyuncs.com/ws/v1"
 
-	TASK_FAILED_NAME = "TaskFailed"
-	
-  AUDIO_FORMAT_KEY        = "format"
+	TASK_FAILED_NAME    = "TaskFailed"
+	CUSTOM_DEFINED_NAME = "CustomDefined"
+
+	AUDIO_FORMAT_KEY        = "format"
 	SAMPLE_RATE_KEY         = "sample_rate"
 	ENABLE_INTERMEDIATE_KEY = "enable_intermediate_result"
 	ENABLE_PP_KEY           = "enable_punctuation_prediction"

@@ -16,7 +16,6 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-
 package nls
 
 import (
@@ -81,6 +80,8 @@ type SpeechTranscription struct {
 	onCompleted     func(text string, param interface{})
 	onClose         func(param interface{})
 
+	CustomHandler map[string]func(text string, param interface{})
+
 	StartParam map[string]interface{}
 	UserParam  interface{}
 }
@@ -107,9 +108,9 @@ func onStTaskFailedHandler(isErr bool, text []byte, proto *nlsProto) {
 	}
 
 	st.lk.Lock()
-  defer st.lk.Unlock()
+	defer st.lk.Unlock()
 
-  if st.startCh != nil {
+	if st.startCh != nil {
 		st.startCh <- false
 		close(st.startCh)
 		st.startCh = nil
@@ -154,8 +155,8 @@ func onStStartedHandler(isErr bool, text []byte, proto *nlsProto) {
 		st.onStarted(string(text), st.UserParam)
 	}
 	st.lk.Lock()
-  defer st.lk.Unlock()
-  if st.startCh != nil {
+	defer st.lk.Unlock()
+	if st.startCh != nil {
 		st.startCh <- true
 		close(st.startCh)
 		st.startCh = nil
@@ -190,10 +191,28 @@ func onStCompletedHandler(isErr bool, text []byte, proto *nlsProto) {
 	}
 
 	st.lk.Lock()
-  defer st.lk.Unlock()
-  if st.stopCh != nil {
+	defer st.lk.Unlock()
+	if st.stopCh != nil {
 		st.stopCh <- true
 		st.stopCh = nil
+	}
+}
+
+func onCustomDefinedHandler(isErr bool, text []byte, proto *nlsProto) {
+	st := checkStNlsProto(proto)
+
+	resp := CommonResponse{}
+	err := json.Unmarshal(text, &resp)
+	if err != nil {
+		st.nls.logger.Println("OCCUR UNKNOWN PROTO:", err)
+		return
+	}
+
+	if st.CustomHandler != nil {
+		handler, ok := st.CustomHandler[resp.Header.Name]
+		if ok {
+			handler(string(text), st.UserParam)
+		}
 	}
 }
 
@@ -208,6 +227,7 @@ var stProto = commonProto{
 		ST_RESULT_CHG_NAME:     onStResultChangedHandler,
 		ST_COMPLETED_NAME:      onStCompletedHandler,
 		TASK_FAILED_NAME:       onStTaskFailedHandler,
+		CUSTOM_DEFINED_NAME:    onCustomDefinedHandler,
 	},
 }
 
@@ -248,6 +268,14 @@ func NewSpeechTranscription(config *ConnectionConfig,
 	return st, nil
 }
 
+func (st *SpeechTranscription) SetCustomHandler(name string, handler func(string, interface{})) {
+	if st.CustomHandler == nil {
+		st.CustomHandler = make(map[string]func(string, interface{}))
+	}
+
+	st.CustomHandler[name] = handler
+}
+
 func (st *SpeechTranscription) Start(param SpeechTranscriptionStartParam, extra map[string]interface{}) (chan bool, error) {
 	if st.nls == nil {
 		return nil, errors.New("empty nls: using NewSpeechTranscription to create a valid instance")
@@ -274,8 +302,8 @@ func (st *SpeechTranscription) Start(param SpeechTranscriptionStartParam, extra 
 		return nil, err
 	}
 
-  st.lk.Lock()
-  defer st.lk.Unlock()
+	st.lk.Lock()
+	defer st.lk.Unlock()
 
 	st.startCh = make(chan bool, 1)
 	return st.startCh, nil
@@ -309,7 +337,6 @@ func (st *SpeechTranscription) Stop() (chan bool, error) {
 		return nil, errors.New("empty nls: using NewSpeechTranscription to create a valid instance")
 	}
 
-
 	req := CommonRequest{}
 	req.Context = DefaultContext
 	req.Header.Appkey = st.nls.connConfig.Appkey
@@ -324,8 +351,8 @@ func (st *SpeechTranscription) Stop() (chan bool, error) {
 		return nil, err
 	}
 
-  st.lk.Lock()
-  defer st.lk.Unlock()
+	st.lk.Lock()
+	defer st.lk.Unlock()
 	st.stopCh = make(chan bool, 1)
 	return st.stopCh, nil
 }
@@ -335,9 +362,9 @@ func (st *SpeechTranscription) Shutdown() {
 		return
 	}
 
-  st.nls.shutdown()
-  st.lk.Lock()
-  defer st.lk.Unlock()
+	st.nls.shutdown()
+	st.lk.Lock()
+	defer st.lk.Unlock()
 	if st.startCh != nil {
 		st.startCh <- false
 		close(st.startCh)
