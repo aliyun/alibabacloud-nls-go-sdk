@@ -12,7 +12,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/aliyun/alibabacloud-nls-go-sdk"
+	nls "github.com/aliyun/alibabacloud-nls-go-sdk"
 )
 
 const (
@@ -83,6 +83,15 @@ func onCompleted(text string, param interface{}) {
 	logger.Println("onCompleted:", text)
 }
 
+func onResultTranslated(text string, param interface{}) {
+	logger, ok := param.(*nls.NlsLogger)
+	if !ok {
+		log.Default().Fatal("invalid logger")
+		return
+	}
+	logger.Println("onCustomHandler:", text)
+}
+
 func onClose(param interface{}) {
 	logger, ok := param.(*nls.NlsLogger)
 	if !ok {
@@ -144,7 +153,7 @@ func testMultiInstance(num int) {
 				logger.Fatalln(err)
 				return
 			}
-
+			st.SetCustomHandler("ResultTranslated", onResultTranslated)
 			test_ex := make(map[string]interface{})
 			test_ex["test"] = "hello"
 

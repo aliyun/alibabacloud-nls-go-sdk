@@ -200,6 +200,7 @@ func onStCompletedHandler(isErr bool, text []byte, proto *nlsProto) {
 
 func onCustomDefinedHandler(isErr bool, text []byte, proto *nlsProto) {
 	st := checkStNlsProto(proto)
+	st.nls.logger.Println("onCustomHandler:", string(text))
 
 	resp := CommonResponse{}
 	err := json.Unmarshal(text, &resp)
@@ -212,6 +213,8 @@ func onCustomDefinedHandler(isErr bool, text []byte, proto *nlsProto) {
 		handler, ok := st.CustomHandler[resp.Header.Name]
 		if ok {
 			handler(string(text), st.UserParam)
+		} else {
+			st.nls.logger.Println("no custom handler for", resp.Header.Name)
 		}
 	}
 }

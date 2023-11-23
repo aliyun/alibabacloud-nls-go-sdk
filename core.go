@@ -16,7 +16,6 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-
 package nls
 
 import (
@@ -144,8 +143,8 @@ func (nls *nlsProto) Connect() error {
 					handler(false, data, nls)
 				}
 			} else {
-        nls.logger.Debugf("recv raw frame:%s", string(data))
-        resp := CommonResponse{}
+				nls.logger.Debugf("recv raw frame:%s", string(data))
+				resp := CommonResponse{}
 				err := json.Unmarshal(data, &resp)
 				if err != nil {
 					nls.logger.Println("OCCUR UNKNOWN PROTO:", err)
@@ -159,6 +158,12 @@ func (nls *nlsProto) Connect() error {
 				handler, ok := nls.proto.handlers[resp.Header.Name]
 				if !ok {
 					nls.logger.Printf("no handler for %s", resp.Header.Name)
+					if cust_handler, ok := nls.proto.handlers[CUSTOM_DEFINED_NAME]; ok {
+						nls.logger.Println("using custom handler for", resp.Header.Name)
+						cust_handler(false, data, nls)
+					} else {
+						nls.logger.Println("no custom handler for", resp.Header.Name)
+					}
 					return
 				}
 				handler(false, data, nls)
