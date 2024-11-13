@@ -118,7 +118,7 @@ type CommonResponse struct {
 type CommonRequest struct {
 	Header  Header                 `json:"header"`
 	Payload map[string]interface{} `json:"payload,omitempty"`
-	Context Context                `json:"context"`
+	Context Context                `json:"context,omitempty"`
 }
 
 func LoadPcmInChunk(r io.Reader, chunkSize int) *ChunkBuffer {
